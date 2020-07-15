@@ -54,6 +54,7 @@ class Operation:
 
 	var total_mouse_offset := Vector3()
 	var nodes: Array
+	var axis_constraint := Vector3.ONE
 
 	func _init(selection: Array):
 		for n in selection:
@@ -64,9 +65,21 @@ class Operation:
 			n.node.transform = n.original_transform
 
 	func handle_key(key: InputEventKey) -> bool:
+		if key.scancode == KEY_X:
+			axis_constraint = Vector3(1, 0, 0)
+			return true
+		elif key.scancode == KEY_Y:
+			axis_constraint = Vector3(0, 1, 0)
+			return true
+		elif key.scancode == KEY_Z:
+			axis_constraint = Vector3(0, 0, 1)
+			return true
 		return false
 
 	func motion(offset: Vector3):
+		offset.x *= axis_constraint.x
+		offset.y *= axis_constraint.y
+		offset.z *= axis_constraint.z
 		total_mouse_offset += offset
 		for n in nodes:
 			transform(n.node, offset, total_mouse_offset)
