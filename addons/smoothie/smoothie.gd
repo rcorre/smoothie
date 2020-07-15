@@ -65,14 +65,16 @@ class Operation:
 			n.node.transform = n.original_transform
 
 	func handle_key(key: InputEventKey) -> bool:
+		var on := 0 if key.shift else 1
+		var off := 1 if key.shift else 0
 		if key.scancode == KEY_X:
-			axis_constraint = Vector3(1, 0, 0)
+			axis_constraint = Vector3(on, off, off)
 			return true
 		elif key.scancode == KEY_Y:
-			axis_constraint = Vector3(0, 1, 0)
+			axis_constraint = Vector3(off, on, off)
 			return true
 		elif key.scancode == KEY_Z:
-			axis_constraint = Vector3(0, 0, 1)
+			axis_constraint = Vector3(off, off, on)
 			return true
 		return false
 
