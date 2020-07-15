@@ -32,7 +32,8 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 			operation = ScaleOperation.new(get_editor_interface())
 			return true
 	elif operation and mouse:
-		operation.motion(mouse.relative * MOUSE_SENSITIVITY)
+		var motion := mouse.relative * MOUSE_SENSITIVITY
+		operation.motion(camera.global_transform.basis.xform(Vector3(motion.x, -motion.y, 0)))
 		return true
 	elif operation and click and click.pressed and click.button_index == BUTTON_LEFT:
 		operation = null  # confirm operation and keep new transforms
@@ -50,7 +51,7 @@ class NodeState:
 
 class Operation:
 
-	var total_mouse_offset := Vector2()
+	var total_mouse_offset := Vector3()
 	var nodes: Array
 
 	func _init(editor: EditorInterface):
@@ -64,12 +65,12 @@ class Operation:
 	func handle_key(key: InputEventKey) -> bool:
 		return false
 
-	func motion(dir: Vector2):
-		total_mouse_offset += dir
+	func motion(offset: Vector3):
+		total_mouse_offset += offset
 		for n in nodes:
-			transform(n.node, dir, total_mouse_offset)
+			transform(n.node, offset, total_mouse_offset)
 
-	func transform(node: Spatial, current: Vector2, total: Vector2):
+	func transform(node: Spatial, current: Vector3, total: Vector3):
 		pass
 
 class TranslateOperation:
@@ -78,9 +79,8 @@ class TranslateOperation:
 	func _init(editor: EditorInterface).(editor):
 		pass
 
-	func transform(node: Spatial, dir: Vector2, _total: Vector2):
-		node.global_transform.origin.x += dir.x
-		node.global_transform.origin.y += dir.y
+	func transform(node: Spatial, offset: Vector3, _total: Vector3):
+		node.global_transform.origin += offset
 
 class RotateOperation:
 	extends Operation
@@ -88,9 +88,10 @@ class RotateOperation:
 	func _init(editor: EditorInterface).(editor):
 		pass
 
-	func transform(node: Spatial, dir: Vector2, _total: Vector2):
-		node.rotate_x(dir.x)
-		node.rotate_y(dir.y)
+	func transform(node: Spatial, offset: Vector3, _total: Vector3):
+		node.rotate_x(offset.x)
+		node.rotate_y(offset.y)
+		node.rotate_z(offset.z)
 
 class ScaleOperation:
 	extends Operation
@@ -98,5 +99,5 @@ class ScaleOperation:
 	func _init(editor: EditorInterface).(editor):
 		pass
 
-	func transform(node: Spatial, _dir: Vector2, total: Vector2):
-		node.scale_object_local(Vector3(total.x, 0, total.y))
+	func transform(node: Spatial, _dir: Vector3, total: Vector3):
+		node.scale_object_local(total)
