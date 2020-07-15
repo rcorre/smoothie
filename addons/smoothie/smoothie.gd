@@ -15,6 +15,7 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 	var key := event as InputEventKey
 	var mouse := event as InputEventMouseMotion
 	var click := event as InputEventMouseButton
+	var selection = get_editor_interface().get_selection().get_transformable_selected_nodes()
 	if key and key.pressed and not key.echo:
 		if operation and key.scancode == KEY_ESCAPE:
 			operation.cancel()
@@ -22,14 +23,14 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 			return true
 		elif operation and operation.handle_key(key):
 			return true
-		elif key.scancode == KEY_G:
-			operation = TranslateOperation.new(get_editor_interface())
+		elif selection and key.scancode == KEY_G:
+			operation = TranslateOperation.new(selection)
 			return true
-		elif key.scancode == KEY_R:
-			operation = RotateOperation.new(get_editor_interface())
+		elif selection and key.scancode == KEY_R:
+			operation = RotateOperation.new(selection)
 			return true
-		elif key.scancode == KEY_S:
-			operation = ScaleOperation.new(get_editor_interface())
+		elif selection and key.scancode == KEY_S:
+			operation = ScaleOperation.new(selection)
 			return true
 	elif operation and mouse:
 		var motion := mouse.relative * MOUSE_SENSITIVITY
@@ -54,8 +55,8 @@ class Operation:
 	var total_mouse_offset := Vector3()
 	var nodes: Array
 
-	func _init(editor: EditorInterface):
-		for n in editor.get_selection().get_transformable_selected_nodes():
+	func _init(selection: Array):
+		for n in selection:
 			nodes.push_back(NodeState.new(n, n.transform))
 
 	func cancel():
@@ -76,7 +77,7 @@ class Operation:
 class TranslateOperation:
 	extends Operation
 
-	func _init(editor: EditorInterface).(editor):
+	func _init(selection).(selection):
 		pass
 
 	func transform(node: Spatial, offset: Vector3, _total: Vector3):
@@ -85,7 +86,7 @@ class TranslateOperation:
 class RotateOperation:
 	extends Operation
 
-	func _init(editor: EditorInterface).(editor):
+	func _init(selection).(selection):
 		pass
 
 	func transform(node: Spatial, offset: Vector3, _total: Vector3):
@@ -96,7 +97,7 @@ class RotateOperation:
 class ScaleOperation:
 	extends Operation
 
-	func _init(editor: EditorInterface).(editor):
+	func _init(selection).(selection):
 		pass
 
 	func transform(node: Spatial, _dir: Vector3, total: Vector3):
