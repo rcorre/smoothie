@@ -14,6 +14,7 @@ func _exit_tree():
 func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 	var key := event as InputEventKey
 	var mouse := event as InputEventMouseMotion
+	var click := event as InputEventMouseButton
 	if key and key.pressed and not key.echo:
 		if operation and key.scancode == KEY_ESCAPE:
 			operation.cancel()
@@ -30,8 +31,11 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 		elif key.scancode == KEY_S:
 			operation = ScaleOperation.new(get_editor_interface())
 			return true
-	elif mouse and operation:
+	elif operation and mouse:
 		operation.motion(mouse.relative * MOUSE_SENSITIVITY)
+		return true
+	elif operation and click and click.pressed and click.button_index == BUTTON_LEFT:
+		operation = null  # confirm operation and keep new transforms
 		return true
 	return false
 
