@@ -62,7 +62,7 @@ class Operation:
 
 	var total_mouse_offset := Vector3()
 	var nodes: Array
-	var axis_constraint := Vector3.ONE
+	var axis_constraint := Vector3.ZERO
 	var constraint_is_local := false
 
 	func _init(selection: Array, scene: Node):
@@ -104,14 +104,17 @@ class Operation:
 	func motion(offset: Vector3):
 		total_mouse_offset += offset
 		for n in nodes:
-			var constraint := axis_constraint
-			if constraint_is_local:
-				constraint = n.node.global_transform.basis.xform(axis_constraint) 
-			transform(
-				n.node,
-				offset.project(constraint),
-				total_mouse_offset.project(constraint)
-			)
+			if axis_constraint != Vector3.ZERO:
+				var constraint := axis_constraint
+				if constraint_is_local:
+					constraint = n.node.global_transform.basis.xform(axis_constraint) 
+				transform(
+					n.node,
+					offset.project(constraint),
+					total_mouse_offset.project(constraint)
+				)
+			else:
+				transform(n.node, offset, total_mouse_offset)
 
 	func transform(node: Spatial, current: Vector3, total: Vector3):
 		pass
