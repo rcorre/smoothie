@@ -43,7 +43,8 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 		operation.motion(camera.global_transform.basis.xform(Vector3(motion.x, -motion.y, 0)))
 		return true
 	elif operation and click and click.pressed and click.button_index == BUTTON_LEFT:
-		operation = null  # confirm operation and keep new transforms
+		operation.confirm()
+		operation = null
 		return true
 	return false
 
@@ -62,10 +63,15 @@ class Operation:
 	var total_mouse_offset := Vector3()
 	var nodes: Array
 	var axis_constraint := Vector3.ONE
+	var constraint_is_local := false
 
 	func _init(selection: Array, scene: Node):
 		for n in selection:
 			nodes.push_back(NodeState.new(n, n.transform))
+
+	func confirm():
+		# clear constraints so we don't leave axes highlighted
+		update_constraint(Vector3.ZERO)
 
 	func cancel():
 		# clear constraints so we don't leave axes highlighted
@@ -74,8 +80,14 @@ class Operation:
 			n.node.transform = n.original_transform
 
 	func update_constraint(constraint: Vector3):
-		axis_constraint = constraint
-		emit_signal("axis_constraint_changed", axis_constraint)
+		# double-pressing an axis means use the local transform
+		constraint_is_local = axis_constraint == constraint and not constraint_is_local
+
+		if constraint_is_local:
+			axis_constraint = nodes[0].node.global_transform.basis.xform(constraint)
+		else:
+			axis_constraint = constraint
+		emit_signal("axis_constraint_changed", axis_constraint, constraint_is_local)
 		for n in nodes:
 			n.node.update_gizmo()
 
@@ -94,9 +106,7 @@ class Operation:
 		return false
 
 	func motion(offset: Vector3):
-		offset.x *= axis_constraint.x
-		offset.y *= axis_constraint.y
-		offset.z *= axis_constraint.z
+		offset = offset.project(axis_constraint)
 		total_mouse_offset += offset
 		for n in nodes:
 			transform(n.node, offset, total_mouse_offset)

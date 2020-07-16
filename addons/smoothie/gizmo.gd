@@ -3,6 +3,7 @@ extends EditorSpatialGizmoPlugin
 # which axes we are limiting motion to
 # determines which axes our gizmo highlights
 var axis_constraint: Vector3
+var constraint_is_local: bool
 
 func _init():
 	create_material("x_axis", Color.red)
@@ -20,9 +21,12 @@ func make_mesh(obj: Spatial, rotation_axis: Vector3) -> ArrayMesh:
 	var mesh_data := c.get_mesh_arrays()
 	var mesh := ArrayMesh.new()
 	for i in len(mesh_data[ArrayMesh.ARRAY_VERTEX]):
-		mesh_data[ArrayMesh.ARRAY_VERTEX][i] = obj.to_local(
-			mesh_data[ArrayMesh.ARRAY_VERTEX][i].rotated(rotation_axis, PI/2)
-		)
+		# rotate the cylinder around the appropriate axis
+		# and translate it to the global origin
+		mesh_data[ArrayMesh.ARRAY_VERTEX][i] = mesh_data[ArrayMesh.ARRAY_VERTEX][i].rotated(rotation_axis, PI/2)
+		if not constraint_is_local:
+			mesh_data[ArrayMesh.ARRAY_VERTEX][i] = obj.to_local(mesh_data[ArrayMesh.ARRAY_VERTEX][i])
+
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mesh_data)
 	return mesh
 
@@ -44,5 +48,6 @@ func get_name():
 func has_gizmo(_s: Spatial):
 	return true
 
-func _on_axis_constraint_changed(constraint: Vector3):
+func _on_axis_constraint_changed(constraint: Vector3, is_local: bool):
 	axis_constraint = constraint
+	constraint_is_local = is_local
