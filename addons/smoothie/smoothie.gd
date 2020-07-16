@@ -82,11 +82,7 @@ class Operation:
 	func update_constraint(constraint: Vector3):
 		# double-pressing an axis means use the local transform
 		constraint_is_local = axis_constraint == constraint and not constraint_is_local
-
-		if constraint_is_local:
-			axis_constraint = nodes[0].node.global_transform.basis.xform(constraint)
-		else:
-			axis_constraint = constraint
+		axis_constraint = constraint
 		emit_signal("axis_constraint_changed", axis_constraint, constraint_is_local)
 		for n in nodes:
 			n.node.update_gizmo()
@@ -106,10 +102,16 @@ class Operation:
 		return false
 
 	func motion(offset: Vector3):
-		offset = offset.project(axis_constraint)
 		total_mouse_offset += offset
 		for n in nodes:
-			transform(n.node, offset, total_mouse_offset)
+			var constraint := axis_constraint
+			if constraint_is_local:
+				constraint = n.node.global_transform.basis.xform(axis_constraint) 
+			transform(
+				n.node,
+				offset.project(constraint),
+				total_mouse_offset.project(constraint)
+			)
 
 	func transform(node: Spatial, current: Vector3, total: Vector3):
 		pass
