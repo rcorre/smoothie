@@ -28,12 +28,15 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 			return true
 		elif selection and key.scancode == KEY_G:
 			operation = TranslateOperation.new(selection, scene)
+			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 		elif selection and key.scancode == KEY_R:
 			operation = RotateOperation.new(selection, scene)
+			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 		elif selection and key.scancode == KEY_S:
 			operation = ScaleOperation.new(selection, scene)
+			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 	elif operation and mouse:
 		var motion := mouse.relative * MOUSE_SENSITIVITY
@@ -43,7 +46,6 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 		operation = null  # confirm operation and keep new transforms
 		return true
 	return false
-
 
 class NodeState:
 	var node: Spatial
@@ -55,6 +57,8 @@ class NodeState:
 
 class Operation:
 
+	signal axis_constraint_changed(axis)
+
 	var total_mouse_offset := Vector3()
 	var nodes: Array
 	var axis_constraint := Vector3.ONE
@@ -64,20 +68,28 @@ class Operation:
 			nodes.push_back(NodeState.new(n, n.transform))
 
 	func cancel():
+		# clear constraints so we don't leave axes highlighted
+		update_constraint(Vector3.ZERO)
 		for n in nodes:
 			n.node.transform = n.original_transform
+
+	func update_constraint(constraint: Vector3):
+		axis_constraint = constraint
+		emit_signal("axis_constraint_changed", axis_constraint)
+		for n in nodes:
+			n.node.update_gizmo()
 
 	func handle_key(key: InputEventKey) -> bool:
 		var on := 0 if key.shift else 1
 		var off := 1 if key.shift else 0
 		if key.scancode == KEY_X:
-			axis_constraint = Vector3(on, off, off)
+			update_constraint(Vector3(on, off, off))
 			return true
 		elif key.scancode == KEY_Y:
-			axis_constraint = Vector3(off, on, off)
+			update_constraint(Vector3(off, on, off))
 			return true
 		elif key.scancode == KEY_Z:
-			axis_constraint = Vector3(off, off, on)
+			update_constraint(Vector3(off, off, on))
 			return true
 		return false
 
