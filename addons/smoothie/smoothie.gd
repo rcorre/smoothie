@@ -4,19 +4,22 @@ extends EditorPlugin
 const MOUSE_SENSITIVITY := 0.01
 
 var operation: Operation
+var gizmo_plugin := preload("res://addons/smoothie/gizmo.gd").new()
 
 func _enter_tree():
 	set_input_event_forwarding_always_enabled()
+	add_spatial_gizmo_plugin(gizmo_plugin)
 
 func _exit_tree():
-	pass
+	remove_spatial_gizmo_plugin(gizmo_plugin)
 
 func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 	var key := event as InputEventKey
 	var mouse := event as InputEventMouseMotion
 	var click := event as InputEventMouseButton
 	var selection = get_editor_interface().get_selection().get_transformable_selected_nodes()
-	if key and key.pressed and not key.echo:
+	var scene = get_editor_interface().get_edited_scene_root()
+	if key and key.pressed and not key.echo and key.scancode == key.get_scancode_with_modifiers():
 		if operation and key.scancode == KEY_ESCAPE:
 			operation.cancel()
 			operation = null
@@ -24,13 +27,13 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 		elif operation and operation.handle_key(key):
 			return true
 		elif selection and key.scancode == KEY_G:
-			operation = TranslateOperation.new(selection)
+			operation = TranslateOperation.new(selection, scene)
 			return true
 		elif selection and key.scancode == KEY_R:
-			operation = RotateOperation.new(selection)
+			operation = RotateOperation.new(selection, scene)
 			return true
 		elif selection and key.scancode == KEY_S:
-			operation = ScaleOperation.new(selection)
+			operation = ScaleOperation.new(selection, scene)
 			return true
 	elif operation and mouse:
 		var motion := mouse.relative * MOUSE_SENSITIVITY
@@ -56,7 +59,7 @@ class Operation:
 	var nodes: Array
 	var axis_constraint := Vector3.ONE
 
-	func _init(selection: Array):
+	func _init(selection: Array, scene: Node):
 		for n in selection:
 			nodes.push_back(NodeState.new(n, n.transform))
 
@@ -92,7 +95,7 @@ class Operation:
 class TranslateOperation:
 	extends Operation
 
-	func _init(selection).(selection):
+	func _init(selection, scene).(selection, scene):
 		pass
 
 	func transform(node: Spatial, offset: Vector3, _total: Vector3):
@@ -101,7 +104,7 @@ class TranslateOperation:
 class RotateOperation:
 	extends Operation
 
-	func _init(selection).(selection):
+	func _init(selection, scene).(selection, scene):
 		pass
 
 	func transform(node: Spatial, offset: Vector3, _total: Vector3):
@@ -112,7 +115,7 @@ class RotateOperation:
 class ScaleOperation:
 	extends Operation
 
-	func _init(selection).(selection):
+	func _init(selection, scene).(selection, scene):
 		pass
 
 	func transform(node: Spatial, _dir: Vector3, total: Vector3):
