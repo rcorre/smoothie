@@ -16,7 +16,9 @@ func op_rotate(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
 	return Transform(input.basis.rotated(input.basis.xform(lock), offset.length()), input.origin)
 
 func op_scale(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
-	return input.scaled(lock + lock * offset.length())
+	if lock == Vector3.ZERO:
+		return input.scaled(Vector3.ONE * (1 + offset.length()))
+	return input.scaled(Vector3.ONE + lock * offset.length())
 
 func _enter_tree():
 	set_input_event_forwarding_always_enabled()
