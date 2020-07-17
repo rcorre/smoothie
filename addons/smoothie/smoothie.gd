@@ -7,20 +7,16 @@ var operation: Operation
 var axis_lock: FuncRef
 var gizmo_plugin := preload("res://addons/smoothie/gizmo.gd").new()
 
-func op_translate(input: Transform, offset: Vector3) -> Transform:
-	return input.translated(offset)
+func op_translate(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
+	if lock == Vector3.ZERO:
+		return input.translated(offset)
+	return input.translated(offset.project(lock))
 
-func op_rotate(input: Transform, offset: Vector3) -> Transform:
-	return input.rotated(
-		Vector3.LEFT, offset.x
-	).rotated(
-		Vector3.UP, offset.y
-	).rotated(
-		Vector3.FORWARD, offset.z
-	)
+func op_rotate(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
+	return input.rotated(lock, offset.length())
 
-func op_scale(input: Transform, offset: Vector3) -> Transform:
-	return input.scaled(offset)
+func op_scale(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
+	return input.scaled(lock + lock * offset.length())
 
 func lock_none(input: Vector3, s: Spatial) -> Vector3:
 	return input
@@ -131,9 +127,4 @@ class Operation:
 		total_mouse_offset += offset
 		for n in nodes:
 			var total_offset := total_mouse_offset
-			if axis_constraint != Vector3.ZERO:
-				var constraint := axis_constraint
-				if not constraint_is_local:
-					constraint = n.original_transform.basis.xform_inv(axis_constraint)
-				total_offset = total_offset.project(constraint)
-			n.node.global_transform = op.call_func(n.original_transform, total_offset)
+			n.node.global_transform = op.call_func(n.original_transform, axis_constraint, total_offset)
