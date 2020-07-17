@@ -13,7 +13,7 @@ func op_translate(input: Transform, lock: Vector3, offset: Vector3) -> Transform
 	return input.translated(offset.project(lock))
 
 func op_rotate(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
-	return Transform(input.basis.rotated(lock, offset.length()), input.origin)
+	return Transform(input.basis.rotated(input.basis.xform(lock), offset.length()), input.origin)
 
 func op_scale(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
 	return input.scaled(lock + lock * offset.length())
@@ -101,8 +101,7 @@ class Operation:
 		constraint_is_local = axis_constraint == constraint and not constraint_is_local
 		axis_constraint = constraint
 		for n in nodes:
-			(n.node.get_gizmo() as SmoothieGizmo).axis_lock = n.get_lock(axis_constraint, constraint_is_local)
-			n.node.update_gizmo()
+			(n.node.get_gizmo() as SmoothieGizmo).update_lock(constraint, constraint_is_local)
 
 	func handle_key(key: InputEventKey) -> bool:
 		var on := 0 if key.shift else 1
