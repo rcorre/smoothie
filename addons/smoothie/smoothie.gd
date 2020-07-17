@@ -13,13 +13,10 @@ func op_translate(input: Transform, lock: Vector3, offset: Vector3) -> Transform
 	return input.translated(offset.project(lock))
 
 func op_rotate(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
-	return input.rotated(lock, offset.length())
+	return Transform(input.basis.rotated(lock, offset.length()), input.origin)
 
 func op_scale(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
 	return input.scaled(lock + lock * offset.length())
-
-func lock_none(input: Vector3, s: Spatial) -> Vector3:
-	return input
 
 func _enter_tree():
 	set_input_event_forwarding_always_enabled()
@@ -127,4 +124,5 @@ class Operation:
 		total_mouse_offset += offset
 		for n in nodes:
 			var total_offset := total_mouse_offset
-			n.node.global_transform = op.call_func(n.original_transform, axis_constraint, total_offset)
+			var lock := axis_constraint if constraint_is_local else n.original_transform.basis.xform_inv(axis_constraint)
+			n.node.global_transform = op.call_func(n.original_transform, lock, total_offset)
