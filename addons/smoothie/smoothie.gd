@@ -62,7 +62,7 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 		operation.motion(camera.global_transform.basis.xform(Vector3(motion.x, -motion.y, 0)))
 		return true
 	elif operation and click and click.pressed and click.button_index == BUTTON_LEFT:
-		operation.confirm()
+		operation.confirm(get_undo_redo())
 		operation = null
 		return true
 	return false
@@ -90,7 +90,12 @@ class Operation:
 		for n in selection:
 			nodes.push_back(NodeState.new(n, n.transform))
 
-	func confirm():
+	func confirm(undo: UndoRedo):
+		undo.create_action("SmoothieTransform")
+		for n in nodes:
+			undo.add_do_property(n.node, "transform", n.node.transform)
+			undo.add_undo_property(n.node, "transform", n.original_transform)
+		undo.commit_action()
 		# clear constraints so we don't leave axes highlighted
 		update_constraint(Vector3.ZERO)
 
