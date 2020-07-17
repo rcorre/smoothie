@@ -4,7 +4,26 @@ extends EditorPlugin
 const MOUSE_SENSITIVITY := 0.01
 
 var operation: Operation
+var axis_lock: FuncRef
 var gizmo_plugin := preload("res://addons/smoothie/gizmo.gd").new()
+
+func op_translate(input: Transform, offset: Vector3) -> Transform:
+	return input.translated(offset)
+
+func op_rotate(input: Transform, offset: Vector3) -> Transform:
+	return input.rotated(
+		Vector3.LEFT, offset.x
+	).rotated(
+		Vector3.UP, offset.y
+	).rotated(
+		Vector3.FORWARD, offset.z
+	)
+
+func op_scale(input: Transform, offset: Vector3) -> Transform:
+	return input.scaled(offset)
+
+func lock_none(input: Vector3, s: Spatial) -> Vector3:
+	return input
 
 func _enter_tree():
 	set_input_event_forwarding_always_enabled()
@@ -27,15 +46,15 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 		elif operation and operation.handle_key(key):
 			return true
 		elif selection and key.scancode == KEY_G:
-			operation = TranslateOperation.new(selection, scene)
+			operation = Operation.new(selection, funcref(self, "op_translate"))
 			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 		elif selection and key.scancode == KEY_R:
-			operation = RotateOperation.new(selection, scene)
+			operation = Operation.new(selection, funcref(self, "op_rotate"))
 			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 		elif selection and key.scancode == KEY_S:
-			operation = ScaleOperation.new(selection, scene)
+			operation = Operation.new(selection, funcref(self, "op_scale"))
 			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 	elif operation and mouse:
@@ -64,8 +83,10 @@ class Operation:
 	var nodes: Array
 	var axis_constraint := Vector3.ZERO
 	var constraint_is_local := false
+	var op: FuncRef
 
-	func _init(selection: Array, scene: Node):
+	func _init(selection: Array, operation: FuncRef):
+		op = operation
 		for n in selection:
 			nodes.push_back(NodeState.new(n, n.transform))
 
@@ -104,46 +125,10 @@ class Operation:
 	func motion(offset: Vector3):
 		total_mouse_offset += offset
 		for n in nodes:
+			var total_offset := total_mouse_offset
 			if axis_constraint != Vector3.ZERO:
 				var constraint := axis_constraint
-				if constraint_is_local:
-					constraint = n.node.global_transform.basis.xform(axis_constraint) 
-				transform(
-					n.node,
-					offset.project(constraint),
-					total_mouse_offset.project(constraint)
-				)
-			else:
-				transform(n.node, offset, total_mouse_offset)
-
-	func transform(node: Spatial, current: Vector3, total: Vector3):
-		pass
-
-class TranslateOperation:
-	extends Operation
-
-	func _init(selection, scene).(selection, scene):
-		pass
-
-	func transform(node: Spatial, offset: Vector3, _total: Vector3):
-		node.global_transform.origin += offset
-
-class RotateOperation:
-	extends Operation
-
-	func _init(selection, scene).(selection, scene):
-		pass
-
-	func transform(node: Spatial, offset: Vector3, _total: Vector3):
-		node.rotate_x(offset.x)
-		node.rotate_y(offset.y)
-		node.rotate_z(offset.z)
-
-class ScaleOperation:
-	extends Operation
-
-	func _init(selection, scene).(selection, scene):
-		pass
-
-	func transform(node: Spatial, _dir: Vector3, total: Vector3):
-		node.scale_object_local(total)
+				if not constraint_is_local:
+					constraint = n.original_transform.basis.xform_inv(axis_constraint)
+				total_offset = total_offset.project(constraint)
+			n.node.transform = op.call_func(n.original_transform, total_offset)
