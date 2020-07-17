@@ -88,12 +88,12 @@ class Operation:
 	func _init(selection: Array, operation: FuncRef):
 		op = operation
 		for n in selection:
-			nodes.push_back(NodeState.new(n, n.transform))
+			nodes.push_back(NodeState.new(n, n.global_transform))
 
 	func confirm(undo: UndoRedo):
 		undo.create_action("SmoothieTransform")
 		for n in nodes:
-			undo.add_do_property(n.node, "transform", n.node.transform)
+			undo.add_do_property(n.node, "transform", n.node.global_transform)
 			undo.add_undo_property(n.node, "transform", n.original_transform)
 		undo.commit_action()
 		# clear constraints so we don't leave axes highlighted
@@ -103,7 +103,7 @@ class Operation:
 		# clear constraints so we don't leave axes highlighted
 		update_constraint(Vector3.ZERO)
 		for n in nodes:
-			n.node.transform = n.original_transform
+			n.node.global_transform = n.original_transform
 
 	func update_constraint(constraint: Vector3):
 		# double-pressing an axis means use the local transform
@@ -136,4 +136,4 @@ class Operation:
 				if not constraint_is_local:
 					constraint = n.original_transform.basis.xform_inv(axis_constraint)
 				total_offset = total_offset.project(constraint)
-			n.node.transform = op.call_func(n.original_transform, total_offset)
+			n.node.global_transform = op.call_func(n.original_transform, total_offset)
