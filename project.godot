@@ -8,9 +8,20 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "EditorSpatialGizmo",
+"class": "SmoothieGizmo",
+"language": "GDScript",
+"path": "res://addons/smoothie/gizmo.gd"
+}, {
+"base": "EditorSpatialGizmoPlugin",
+"class": "SmoothieGizmoPlugin",
+"language": "GDScript",
+"path": "res://addons/smoothie/gizmo_plugin.gd"
+} ]
 _global_script_class_icons={
-
+"SmoothieGizmo": "",
+"SmoothieGizmoPlugin": ""
 }
 
 [application]

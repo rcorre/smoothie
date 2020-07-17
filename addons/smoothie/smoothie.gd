@@ -5,7 +5,7 @@ const MOUSE_SENSITIVITY := 0.01
 
 var operation: Operation
 var axis_lock: FuncRef
-var gizmo_plugin := preload("res://addons/smoothie/gizmo.gd").new()
+var gizmo_plugin := SmoothieGizmoPlugin.new()
 
 func op_translate(input: Transform, lock: Vector3, offset: Vector3) -> Transform:
 	if lock == Vector3.ZERO:
@@ -40,15 +40,12 @@ func forward_spatial_gui_input(camera: Camera, event: InputEvent):
 			return true
 		elif selection and key.scancode == KEY_G:
 			operation = Operation.new(selection, funcref(self, "op_translate"))
-			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 		elif selection and key.scancode == KEY_R:
 			operation = Operation.new(selection, funcref(self, "op_rotate"))
-			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 		elif selection and key.scancode == KEY_S:
 			operation = Operation.new(selection, funcref(self, "op_scale"))
-			operation.connect("axis_constraint_changed", gizmo_plugin, "_on_axis_constraint_changed")
 			return true
 	elif operation and mouse:
 		var motion := mouse.relative * MOUSE_SENSITIVITY
@@ -68,9 +65,10 @@ class NodeState:
 		node = n
 		original_transform = t
 
-class Operation:
+	func get_lock(lock: Vector3, local: bool) -> Vector3:
+		return lock if local else original_transform.basis.xform_inv(lock)
 
-	signal axis_constraint_changed(axis)
+class Operation:
 
 	var total_mouse_offset := Vector3()
 	var nodes: Array
@@ -102,8 +100,8 @@ class Operation:
 		# double-pressing an axis means use the local transform
 		constraint_is_local = axis_constraint == constraint and not constraint_is_local
 		axis_constraint = constraint
-		emit_signal("axis_constraint_changed", axis_constraint, constraint_is_local)
 		for n in nodes:
+			(n.node.get_gizmo() as SmoothieGizmo).axis_lock = n.get_lock(axis_constraint, constraint_is_local)
 			n.node.update_gizmo()
 
 	func handle_key(key: InputEventKey) -> bool:
@@ -124,5 +122,8 @@ class Operation:
 		total_mouse_offset += offset
 		for n in nodes:
 			var total_offset := total_mouse_offset
-			var lock := axis_constraint if constraint_is_local else n.original_transform.basis.xform_inv(axis_constraint)
-			n.node.global_transform = op.call_func(n.original_transform, lock, total_offset)
+			n.node.global_transform = op.call_func(
+				n.original_transform,
+				n.get_lock(axis_constraint, constraint_is_local),
+				total_offset
+			)
